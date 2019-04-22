@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ZH" xmlns:th="http://www.springframework.org/schema/mvc">
+<head>
+    <meta charset="UTF-8">
+    <title>spring boot + mybatis + vue + elementui</title>
+    <link rel="stylesheet" href="//cdn.bootcss.com/element-ui/1.1.2/theme-default/index.css">
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://cdn.staticfile.org/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script th:src="@{../js/vue/vue.js}"></script>
+    <script src="//cdn.bootcss.com/element-ui/1.1.2/index.js"></script>
+    <script src="//cdn.bootcss.com/vue-resource/1.0.3/vue-resource.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<div id="vm">
+    <el-row :gutter="3" style="margin: 10px 0;">
+        <el-col :span="5">
+            <el-input placeholder="用户检索" v-model="searchKey" icon="search" @change="changeUsername">
+            </el-input>
+        </el-col>
+        <el-col :span="5" :offset="14" type="flex" class="row-bg" justify="end">
+            <el-button class="right-button" type="success" @click="addBtn"> 添加人员
+            </el-button>
+        </el-col>
+    </el-row>
+    <el-table border fit :data="users" highlight-current-row style="width: 100%;font-size: 12px;">
+        <el-table-column type="index" width="80" label="序号"></el-table-column>
+        <el-table-column prop="username" label="用户名称"></el-table-column>
+        <el-table-column prop="password" label="密码"></el-table-column>
+        <el-table-column prop="sex" label="性别" :formatter="formatSex" sortable></el-table-column>
+        <el-table-column prop="email" label="邮箱地址"></el-table-column>
+        <el-table-column prop="age" label="年龄" sortable></el-table-column>
+        <el-table-column prop="createdate" label="开户日期" sortable :formatter="formatCreateDate"></el-table-column>
+
+        <el-table-column label="操作">
+            <template slot-scope="scope">
+                <el-button type="info" round size="small" @click="update(scope.row)"> 修 改</el-button>
+                <el-button type="danger" @click="delUser(scope.row.id)" plain size="small"> 删 除</el-button>
+            </template>
+        </el-table-column>
+
+    </el-table>
+    <el-col class="toolbar" style="padding:10px;">
+        <el-pagination @current-change="findAll" :current-page="currentPage" :page-size="5"
+                       layout="total, prev, pager, next, jumper" :total="total" style="float:right"></el-pagination>
+    </el-col>
+</div>
+<!--新增用户的模态框-->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true"
+     style="margin:auto;width: 800px">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                    &times;
+                </button>
+                <h4 class="modal-title" id="myModalLabel">
+                    添加用户到银行系统
+                </h4>
+            </div>
+            <div class="modal-body">
+                <el-form id="submitForm" :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px"
+                         class="demo-ruleForm">
+                    <el-form-item label="用户名称" prop="username">
+                        <el-input v-model="ruleForm.username"></el-input>
+                    </el-form-item>
+                    <el-form-item label="账户" prop="loginname">
+                        <el-input v-model="ruleForm.loginname"></el-input>
+                    </el-form-item>
+                    <el-form-item label="密码" prop="password">
+                        <el-input v-model="ruleForm.password" type="password" ></el-input>
+                    </el-form-item>
+                    <el-form-item label="重复密码" prop="requiredPassword" >
+                        <el-input v-model="ruleForm.requiredPassword" type="password" @blur="checkPassword" required> </el-input>
+                    </el-form-item>
+                    <el-form-item label="邮箱地址" prop="email" :rules="[
+      { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+      { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
+    ]">
+                        <el-input v-model="ruleForm.email"></el-input>
+                    </el-form-item>
+                    <el-form-item label="用户类型" prop="userlevel">
+                        <el-select v-model="ruleForm.userlevel" >
+
+                            <el-option v-for="item in userLevel" :key="item.key" :label="item.label" :value="item.value"></el-option>
+
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="出生年月" required>
+                        <el-col :span="11">
+                            <el-form-item prop="birthday">
+                                <el-date-picker format="yyyy-MM-dd" type="date" placeholder="选择日期" v-model="ruleForm.birthday" default-value="2012-12-12"
+                                                style="width: 100%;"></el-date-picker>
+                            </el-form-item>
+                        </el-col>
+
+
+                    </el-form-item>
+
+                    <el-form-item label="开户时间" required>
+                        <el-col :span="11">
+                            <el-form-item prop="createdate" >
+                                <el-date-picker format="yyyy-MM-dd" type="datetime" placeholder="选择日期" v-model="ruleForm.createdate" default-value="2012-12-12"
+                                                style="width: 100%;"></el-date-picker>
+                            </el-form-item>
+                        </el-col>
+
+
+                    </el-form-item>
+                    <el-form-item label="性别" prop="userSex">
+                        <el-switch v-model="ruleForm.userSex"></el-switch>
+
+
+                        <el-span v-if="ruleForm.userSex">
+                            男
+                        </el-span>
+                        <el-span v-if="!ruleForm.userSex">
+                            女
+                        </el-span>
+
+
+                    </el-form-item>
+                   <!-- <el-form-item label="开启业务" prop="bindServer">
+                        <el-checkbox-group v-model="ruleForm.bindServer">
+                            <el-checkbox label="短信提醒" name="bindServer"></el-checkbox>
+                            <el-checkbox label="日常活动推送" name="bindServer"></el-checkbox>
+                            <el-checkbox label="免年费" name="bindServer"></el-checkbox>
+                        </el-checkbox-group>
+                    </el-form-item>-->
+
+                    <el-form-item label="备注" prop="description">
+                        <el-input type="textarea" v-model="ruleForm.description"></el-input>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="submitForm('ruleForm')">立即创建</el-button>
+                        <el-button @click="resetForm('ruleForm')">重置</el-button>
+                    </el-form-item>
+                </el-form>
+            </div>
+            <div class="modal-footer">
+                <el-button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                </el-button>
+                <el-button type="button" class="btn btn-primary" @click="submitForm('ruleForm')">
+                    保存
+                </el-button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+</body>
+<script>
+    Vue.http.options.emulateJSON = true;
+    //Vue.http.options.emulateHTTP = true;
+    var vm = new Vue({
+        el: '#vm',
+        data: {
+            users: [],
+            currentPage: 1,
+            total: 5,
+            listLoading: false,
+            searchKey: null
+        },
+        mounted: function () {
+            this.findAll();
+        },
+        methods: {
+            findAll: function (currentPage) {
+                this.listLoading = true;
+                if (!isNaN(currentPage)) {
+                    this.currentPage = currentPage;
+                }
+                /*定义分页参数*/
+                var params_ = {
+                    pageIndex: this.currentPage,
+                    pageSize: 5
+                };
+                if (this.searchKey && this.searchKey.trim() != "") {
+                    params_['searchKey'] = this.searchKey;
+                }
+                //像后台请求数据
+                this.$http.get("/user/userList", {
+                    params: params_
+                }).then(function (response) {
+                    console.log(response.data);
+                    this.total = response.data.count;
+                    this.users = [];
+                    for (var key in response.data.users) {
+                        this.$set(this.users, key, response.data.users[key]);
+                    }
+                    this.$set(this.users, "writable", false);
+
+                }).catch(function (response) {
+                    console.error(response);
+                });
+                this.listLoading = false;
+            },
+            formatDate: function getNowFormatDate(time) {
+                var date = new Date(time);
+                var seperator1 = "-";
+                var seperator2 = ":";
+                var month = date.getMonth() + 1;
+                var strDate = date.getDate();
+                if (month >= 1 && month <= 9) {
+                    month = "0" + month;
+                }
+                if (strDate >= 0 && strDate <= 9) {
+                    strDate = "0" + strDate;
+                }
+                var currentdate = date.getFullYear() + seperator1 + month + seperator1 + strDate
+                    + " " + date.getHours() + seperator2 + date.getMinutes()
+                    + seperator2 + date.getSeconds();
+                return currentdate;
+            },
+            formatCreateDate: function (row, column) {
+                if (row.createdate != null) {
+                    return this.formatDate(row.createdate);
+                } else {
+                    return '';
+                }
+            },
+            formatSex: function (row, column) {
+                if (row.sex != null) {
+                    return row.sex == 1 ? '男' : '女';
+                }
+            },
+            changeUsername: function () {
+                this.findAll(1);
+            },
+
+            //删除用户
+            delUser: function (_id) {
+               if(confirm("确认删除此用户吗?")){
+                var params_ = {
+                    id: _id
+                };
+                //发生删除请求
+                this.$http.get("/user/del", {
+                    params: params_
+                }).then(function (response) {
+
+                    vm.$message({
+                        type: 'error',
+                        message: "删除成功!"
+                    });
+
+                    //重新查询列表,刷新数据
+                    this.findAll(this.currentPage)
+
+                }).catch(function (response) {
+                    console.error(response);
+                });
+            }},
+
+            //进行修改
+            update: function (row) {
+                row.username = "";
+            },
+            //添加用户的按钮事件
+            addBtn: function () {
+                $("#myModal").modal("show");
+
+            },
+
+            //保存用户到后台
+            saveUser: function () {
+
+            }
+        }
+    });
+
+    var submitForm = new Vue({
+        el: "#submitForm",
+        data: {
+            ruleForm: {
+                username: '',
+                password: '',
+                loginname: '',
+                email: '',
+                birthday: new Date(),
+                requiredPassword:'',
+                region: '',
+                userlevel: '1',
+                createdate: '2012-12-12',
+                date2: '',
+                date1: '',
+                userSex: false,
+                bindServer: [],
+                resource: '',
+                description: ''
+            },
+            rules: {
+                username: [
+                    {required: true, message: '请输入活动名称', trigger: 'blur'},
+                    {min: 3, max: 8 , message: '长度在 3 到 8 个字符', trigger: 'blur'}
+                ],
+                password: [
+                    {required: true, message: '请输入密码', trigger: 'blur'},
+                    {min: 6, max: 12, message: '长度在 6 到 12 个字符', trigger: 'blur'}
+                ],
+               /* requiredPassword: [
+                    {required: true, message: '请输入密码验证', trigger: 'blur'},
+                    {min: 6, max: 12, message: '长度在 6 到 12 个字符', trigger: 'blur'}
+                ],*/
+                loginname: [
+                    {required: true, message: '请输入账户名', trigger: 'blur'},
+                    {min: 4, max: 10, message: '长度在 4 到 10 个字符', trigger: 'blur'}
+                ],
+                /*  email: [
+                      { required: true, message: '请输入活动名称', trigger: 'email' },
+                      { min: 3, max: 5, message: '长度在 3 到 5 个字符', trigger: 'blur' }
+                  ],*/
+                userlevel: [
+                    {required: true, message: '请选择用户级别', trigger: 'change'}
+                ],
+                birthday: [
+                    {type: 'date', required: true, message: '请选择日期', trigger: 'change'}
+                ],
+                createdate: [
+                    {type: 'date', required: true, message: '请选择时间', trigger: 'change'}
+                ],
+                bindServer: [
+                    {type: 'array', required: true, message: '请至少选择一个业务办理', trigger: 'change'}
+                ],
+                /*resource: [
+                    {required: true, message: '请选择活动资源', trigger: 'change'}
+                ],*/
+                description: [
+                    {required: true, message: '请填写备注信息!', trigger: 'blur'}
+                ]
+
+            },
+            userLevel:
+                [
+                    {
+                        value:'1',
+                        label:'普通用户'
+                    },
+                    {
+                        value:'2',
+                        label:'白银会员'
+                    },
+                    {
+                        value:'3',
+                        label:'黄金会员'
+                    },
+                    {
+                        value:'4',
+                        label:'钻石会员'
+                    }
+                    ],
+            doSave:true
+
+        },
+        methods: {
+            //提交数据到后台进行保存
+            submitForm: function (formName) {
+
+                //var formData = JSON.stringify(this.ruleForm); // 这里才是你的表单数据
+
+               /* var config = {
+                    headers: {
+                      'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                }*/
+
+                /*this.$http.post('/user/update',this.ruleForm).then(function (res) {
+
+                    //$("#myModal").modal("hide");
+
+                });*/
+                axios.post('/user/update', this.ruleForm)
+                    .then(function (response) {
+                        console.log(response);
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            },
+
+            resetForm: function (formName) {
+                this.$refs[formName].resetFields();
+            },
+
+            //检查俩次的密码是否一致
+            checkPassword:function () {
+                if(!this.ruleForm.requiredPassword||this.ruleForm.requiredPassword!==this.ruleForm.password){
+                    vm.$message({
+                        type: 'error',
+                        message: "俩次输入的密码不一致,请重新输入!"
+                    });
+                }
+            }
+
+
+        }
+    })
+</script>
+</html>
