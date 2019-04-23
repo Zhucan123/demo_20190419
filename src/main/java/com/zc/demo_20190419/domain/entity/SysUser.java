@@ -49,7 +49,7 @@ public class SysUser extends BaseDomain {
      *
      * @mbg.generated Mon Apr 22 15:07:14 CST 2019
      */
-    private Integer sex;
+    private Boolean sex;
 
     /**
      *
@@ -67,8 +67,8 @@ public class SysUser extends BaseDomain {
      *
      * @mbg.generated Mon Apr 22 15:07:14 CST 2019
      */
-    @DateTimeFormat(pattern="yyyy-MM-dd")
-    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "Asia/Shanghai")
     private Date createdate;
 
     /**
@@ -88,7 +88,7 @@ public class SysUser extends BaseDomain {
      * @mbg.generated Mon Apr 22 15:07:14 CST 2019
      */
     @DateTimeFormat(pattern="yyyy-MM-dd")
-    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Shanghai")
     private Date birthday;
 
     /**
@@ -222,7 +222,7 @@ public class SysUser extends BaseDomain {
      *
      * @mbg.generated Mon Apr 22 15:07:14 CST 2019
      */
-    public Integer getSex() {
+    public Boolean getSex() {
         return sex;
     }
 
@@ -234,7 +234,7 @@ public class SysUser extends BaseDomain {
      *
      * @mbg.generated Mon Apr 22 15:07:14 CST 2019
      */
-    public void setSex(Integer sex) {
+    public void setSex(Boolean sex) {
         this.sex = sex;
     }
 

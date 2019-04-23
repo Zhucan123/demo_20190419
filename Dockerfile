@@ -19,7 +19,7 @@ RUN bash -c "touch /app.jar"
 #设置时区
 RUN /bin/cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime&& echo 'Asia/Shanghai' >/etc/timezone
 
-#声明运行时容器提供服务端口，这只是一个声明，在运行时并不会因为这个声明应用就会开启这个端口的服务
+#声明运行时容器提供服务端口，这只是一个声明，在运行时并不会因为这个声明应用就会开启这个端口的服务,需要注意防火墙是否开放了端口
 EXPOSE 8080
 
 #指定容器启动程序及参数   <ENTRYPOINT> "<CMD>"

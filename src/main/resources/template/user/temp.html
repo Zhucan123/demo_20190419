@@ -27,15 +27,17 @@
     <el-table border fit :data="users" highlight-current-row style="width: 100%;font-size: 12px;">
         <el-table-column type="index" width="80" label="序号"></el-table-column>
         <el-table-column prop="username" label="用户名称"></el-table-column>
-        <el-table-column prop="password" label="密码"></el-table-column>
+        <el-table-column prop="loginname" label="登录账户"></el-table-column>
         <el-table-column prop="sex" label="性别" :formatter="formatSex" sortable></el-table-column>
         <el-table-column prop="email" label="邮箱地址"></el-table-column>
         <el-table-column prop="age" label="年龄" sortable></el-table-column>
+        <el-table-column prop="userLevel" label="用户级别" sortable :formatter="formatLevel"></el-table-column>
         <el-table-column prop="createdate" label="开户日期" sortable :formatter="formatCreateDate"></el-table-column>
+        <el-table-column prop="description" label="用户批注"></el-table-column>
 
         <el-table-column label="操作">
             <template slot-scope="scope">
-                <el-button type="info" round size="small" @click="update(scope.row)"> 修 改</el-button>
+                <el-button type="info" round size="small" @click="update(scope.row.id)"> 修 改</el-button>
                 <el-button type="danger" @click="delUser(scope.row.id)" plain size="small"> 删 除</el-button>
             </template>
         </el-table-column>
@@ -56,7 +58,8 @@
                     &times;
                 </button>
                 <h4 class="modal-title" id="myModalLabel">
-                    添加用户到银行系统
+                   <el-span v-if="ruleForm.id===''">添加用户到系统</el-span>
+                    <el-span v-else >修改用户资料</el-span>
                 </h4>
             </div>
             <div class="modal-body">
@@ -81,16 +84,18 @@
                         <el-input v-model="ruleForm.email"></el-input>
                     </el-form-item>
                     <el-form-item label="用户类型" prop="userlevel">
+                        <template>
                         <el-select v-model="ruleForm.userlevel" >
 
                             <el-option v-for="item in userLevel" :key="item.key" :label="item.label" :value="item.value"></el-option>
 
                         </el-select>
+                        </template>
                     </el-form-item>
                     <el-form-item label="出生年月" required>
                         <el-col :span="11">
                             <el-form-item prop="birthday">
-                                <el-date-picker format="yyyy-MM-dd" type="date" placeholder="选择日期" v-model="ruleForm.birthday" default-value="2012-12-12"
+                                <el-date-picker format="yyyy-MM-dd" type="date" placeholder="选择日期" v-model="ruleForm.birthday"
                                                 style="width: 100%;"></el-date-picker>
                             </el-form-item>
                         </el-col>
@@ -101,21 +106,21 @@
                     <el-form-item label="开户时间" required>
                         <el-col :span="11">
                             <el-form-item prop="createdate" >
-                                <el-date-picker format="yyyy-MM-dd" type="datetime" placeholder="选择日期" v-model="ruleForm.createdate" default-value="2012-12-12"
+                                <el-date-picker disabled type="datetime" placeholder="选择日期" v-model="ruleForm.createdate"
                                                 style="width: 100%;"></el-date-picker>
                             </el-form-item>
                         </el-col>
 
 
                     </el-form-item>
-                    <el-form-item label="性别" prop="userSex">
-                        <el-switch v-model="ruleForm.userSex"></el-switch>
+                    <el-form-item label="性别" prop="sex">
+                        <el-switch v-model="ruleForm.sex"></el-switch>
 
 
-                        <el-span v-if="ruleForm.userSex">
+                        <el-span v-if="ruleForm.sex">
                             男
                         </el-span>
-                        <el-span v-if="!ruleForm.userSex">
+                        <el-span v-if="!ruleForm.sex">
                             女
                         </el-span>
 
@@ -221,8 +226,18 @@
             },
             formatSex: function (row, column) {
                 if (row.sex != null) {
-                    return row.sex == 1 ? '男' : '女';
+                    return row.sex  ? '男' : '女';
                 }
+            },
+            formatLevel:function(row,column){
+                    switch (row.userlevel) {
+                        case 1:return"普通用户";
+                        case 2:return"白银会员";
+                        case 3:return"黄金会员";
+                        case 4:return"钻石会员";
+                        default:return "未知用户";
+                    }
+
             },
             changeUsername: function () {
                 this.findAll(1);
@@ -253,13 +268,27 @@
             }},
 
             //进行修改
-            update: function (row) {
-                row.username = "";
+            update: function (_id) {
+                var params={id:_id};
+
+                //查询这个用户的数据
+                axios.get('/user/userInfo',{params:params})
+                    .then(function (response) {
+                        var user=response.data.user;
+                        for (var key in user){
+                            //把查到的用户数据填充到模态框里面
+                            submitForm.$set(submitForm.ruleForm, key, user[key]);
+                        }
+                        $("#myModal").modal("show");
+
+                    });
+
             },
             //添加用户的按钮事件
             addBtn: function () {
                 $("#myModal").modal("show");
-
+                submitForm.ruleForm.id='';
+                submitForm.ruleForm.createdate=Date.now();
             },
 
             //保存用户到后台
@@ -270,21 +299,22 @@
     });
 
     var submitForm = new Vue({
-        el: "#submitForm",
+        el: "#myModal",
         data: {
             ruleForm: {
+                id:'',
                 username: '',
                 password: '',
                 loginname: '',
                 email: '',
-                birthday: new Date(),
+                birthday: '',
                 requiredPassword:'',
                 region: '',
                 userlevel: '1',
-                createdate: '2012-12-12',
+                createdate: Date.now(),
                 date2: '',
                 date1: '',
-                userSex: false,
+                sex: false,
                 bindServer: [],
                 resource: '',
                 description: ''
@@ -298,10 +328,10 @@
                     {required: true, message: '请输入密码', trigger: 'blur'},
                     {min: 6, max: 12, message: '长度在 6 到 12 个字符', trigger: 'blur'}
                 ],
-               /* requiredPassword: [
+                requiredPassword: [
                     {required: true, message: '请输入密码验证', trigger: 'blur'},
-                    {min: 6, max: 12, message: '长度在 6 到 12 个字符', trigger: 'blur'}
-                ],*/
+                   /* {min: 6, max: 12, message: '长度在 6 到 12 个字符', trigger: 'blur'}*/
+                ],
                 loginname: [
                     {required: true, message: '请输入账户名', trigger: 'blur'},
                     {min: 4, max: 10, message: '长度在 4 到 10 个字符', trigger: 'blur'}
@@ -355,8 +385,48 @@
         methods: {
             //提交数据到后台进行保存
             submitForm: function (formName) {
+              /*  submitForm.$refs['ruleForm'].validate(function(validate){
+                    if(!validate){
+                        submitForm.$message({
+                            type: 'error',
+                            message: "请填写必填项!"
+                        });
 
-                //var formData = JSON.stringify(this.ruleForm); // 这里才是你的表单数据
+                    }
+            });*/
+                //检查登录名是否重复
+                axios.get('/user/checkLoginName',{ params:{id:this.ruleForm.id,loginName:this.ruleForm.loginname}})
+                    .then(function (response) {
+                        if (response.data==="failed") {
+                            vm.$message({
+                                type: 'success',
+                                message: "登录帐号有重复!"
+                            });
+                        }else{
+                            //用vue的http.post传不了时间,改用axios发送请求
+                            axios.post('/user/update', submitForm.ruleForm)
+                                .then(function (response) {
+                                    if (response.data==="success")
+                                        vm.$message({
+                                            type: 'success',
+                                            message: "用户已保存完毕!"
+                                        });
+
+                                    $("#myModal").modal("hide");
+                                    //刷新列表数据
+                                    vm.findAll(vm.currentPage);
+                                })
+                                .catch(function (error) {
+                                    console.log(error);
+                                });
+                        }
+
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+
+                //var formData = JSON.stringify(this.ruleForm); // 表单数据json序列化
 
                /* var config = {
                     headers: {
@@ -369,13 +439,8 @@
                     //$("#myModal").modal("hide");
 
                 });*/
-                axios.post('/user/update', this.ruleForm)
-                    .then(function (response) {
-                        console.log(response);
-                    })
-                    .catch(function (error) {
-                        console.log(error);
-                    });
+
+
             },
 
             resetForm: function (formName) {
