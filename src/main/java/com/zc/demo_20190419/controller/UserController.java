@@ -29,7 +29,7 @@ public class UserController {
 
     @GetMapping("/userList")
     @ResponseBody
-    public Map<String, Object> getUserList(@RequestParam(defaultValue = "1") int pageIndex, @RequestParam(defaultValue = "1") int pageSize, String searchKey) {
+    public Map<String, Object> getUserList(@RequestParam(defaultValue = "1") int pageIndex, @RequestParam(defaultValue = "5") int pageSize, String searchKey) {
         return userService.userList(pageIndex, pageSize, searchKey);
     }
 
